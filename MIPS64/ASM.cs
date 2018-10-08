@@ -249,7 +249,7 @@ namespace MIPS64
                 $"LUI {"{0}"}, {globals.BASE}",
                 "ADDIU {0}, {0}, {1}",
                 "JALR {0}" }));
-            Macros.Add("RET",  (0, new string[] { $"JR $ra" }));
+            Macros.Add("RET",  (0, new string[] { $"JR $RA" }));
         }
     }
 }
