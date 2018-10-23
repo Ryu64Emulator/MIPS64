@@ -1,4 +1,6 @@
 [BASE 0x8000]
 
 main:
-LB $t3, 0x1000($t3)
+LW $a0, 0x4000($a1)
+
+!include "./test2.asm"

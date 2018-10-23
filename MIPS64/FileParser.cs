@@ -20,34 +20,97 @@ namespace MIPS64
             this.Filename = Filename;
         }
 
-        public void Assemble(string Output)
+        public Globals GetGlobals()
+        {
+            return globals;
+        }
+
+        public void Include(string IncFilename, List<string> Lines)
+        {
+            if (!File.Exists(IncFilename)) throw new FileNotFoundException($"The included file \"{IncFilename}\" doesn't exist.");
+
+            string[] fileLinesArray = File.ReadAllLines(IncFilename);
+
+            List<string> fileLines = new List<string>();
+
+            foreach (string Line in fileLinesArray)
+            {
+                if (string.IsNullOrWhiteSpace(Line)) continue;
+
+                if (ParseInclude(Line, fileLines)) continue;
+
+                fileLines.Add(Line);
+            }
+
+            Lines.AddRange(fileLines);
+        }
+
+        public void AssembleAndCreateRaw(string Output)
+        {
+            Assemble();
+
+            FormatCreator.CreateFormat(Output, FormatCreator.Format.RAW, globals);
+        }
+
+        public byte[] Assemble()
         {
             if (!File.Exists(Filename)) throw new FileNotFoundException($"The file \"{Filename}\" doesn't exist.");
 
-            string[] fileLines = File.ReadAllLines(Filename);
+            string[] fileLinesArray = File.ReadAllLines(Filename);
 
-            foreach (string Line in fileLines)
+            List<string> fileLines = new List<string>();
+
+            foreach (string Line in fileLinesArray)
             {
-                asm.ParseLabel(Line.ToUpper()); // Parse Labels
-                PreP.PreProcess(Line.ToUpper()); // Pre Process
+                if (string.IsNullOrWhiteSpace(Line)) continue;
+
+                if (ParseInclude(Line, fileLines)) continue;
+
+                fileLines.Add(Line);
             }
 
             foreach (string Line in fileLines)
-                asm.ParseLine(Line.ToUpper()); // Assemble
-
-            byte[] Data = new byte[globals.GetInstCount() * 4];
-
-            for (int i = 0; i < Data.Length; i += 4)
             {
-                for (int j = 0; j < 4; ++j)
+                asm.ParseLabel(Line); // Parse Labels
+                PreP.PreProcess(Line); // Pre Process
+            }
+
+            foreach (string Line in fileLines)
+            {
+                asm.ParseLine(Line); // Assemble
+            }
+
+            return globals.GetAllData().ToArray();
+        }
+
+        private bool ParseInclude(string Line, List<string> Lines)
+        {
+            if (Line[0] == '!')
+            {
+                string[] words = Line.Split(' ');
+
+                string ArgString = "";
+                for (int i = 1; i < words.Length; ++i)
+                    ArgString += words[i];
+
+                string[] Args;
+
+                if (ArgString == "")
+                    Args = new string[] { };
+                else
+                    Args = ArgString.Split(',');
+
+                OperandParser OpParse = new OperandParser(globals);
+
+                if (words[0].ToUpper() == "!INCLUDE")
                 {
-                    byte[] Bytes = BitConverter.GetBytes(globals.GetAllInsts()[i / 4]);
-                    Array.Reverse(Bytes);
-                    Data[i + j] = Bytes[j];
+                    string FilePath = (string)OpParse.ParseOperand(Args[0], OperandParser.OperandType.StringWithSpaces, Args, 0);
+
+                    Include(FilePath, Lines);
+                    return true;
                 }
             }
-
-            File.WriteAllBytes(Output, Data);
+            return false;
         }
     }
 }

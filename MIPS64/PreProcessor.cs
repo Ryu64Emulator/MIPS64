@@ -10,7 +10,7 @@ namespace MIPS64
         private OperandParser Parser;
         private Dictionary<string, PreP> PreProcessors;
 
-        private delegate void MacroMethod(decimal[] Operands);
+        private delegate void MacroMethod(object[] Operands);
 
         private struct PreP
         {
@@ -49,16 +49,21 @@ namespace MIPS64
             for (int i = 1; i < words.Length; ++i)
                 ArgString += words[i];
 
-            string[] Args = ArgString.Split(',');
+            string[] Args;
 
-            List<decimal> Operands = new List<decimal>();
+            if (ArgString == "")
+                Args = new string[] { };
+            else
+                Args = ArgString.Split(',');
 
-            if (PreProcessors.TryGetValue(words[0], out PreP PP))
+            List<object> Operands = new List<object>();
+
+            if (PreProcessors.TryGetValue(words[0].ToUpper(), out PreP PP))
             {
                 if (Args.Length != PP.Types.Length) throw new ArgumentException($"The Pre-Processor \"{words[0]}\" requires {PP.Types.Length} arguments.");
 
                 for (int i = 0; i < Args.Length; ++i)
-                    Operands.Add(Parser.ParseOperand(Args[i], PP.Types[i]));
+                    Operands.Add(Parser.ParseOperand(Args[i], PP.Types[i], Args, i));
 
                 PP.Method(Operands.ToArray());
             }
@@ -71,7 +76,10 @@ namespace MIPS64
         private void InitializePreProcessors()
         {
             PreProcessors.Add("BASE", new PreP(new OperandParser.OperandType[] { OperandParser.OperandType.Number16bit }, 
-                (decimal[] o) => { globals.BASE = (ushort)o[0]; }));
+                (object[] op) => { globals.BASE = (ushort)op[0]; }));
+            PreProcessors.Add("DEFINE", new PreP(new OperandParser.OperandType[] { OperandParser.OperandType.StringWithoutSpaces,
+                                                                                   OperandParser.OperandType.StringOfAnythingAfter },
+                (object[] op) => { globals.AddUserMacro((string)op[0], (string)op[1]); }));
         }
     }
 }

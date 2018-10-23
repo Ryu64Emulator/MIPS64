@@ -10,7 +10,7 @@ namespace MIPS64CLI
                 throw new ArgumentException("Usage: [input file] [output file]");
 
             MIPS64.FileParser FP = new MIPS64.FileParser(args[0]);
-            FP.Assemble(args[1]);
+            FP.AssembleAndCreateRaw(args[1]);
             Console.WriteLine("Done!");
         }
     }

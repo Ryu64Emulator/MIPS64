@@ -21,31 +21,19 @@ namespace MIPS64
                     CreateRAW(Output, Globals[0]);
                     return;
                 case Format.Z64:
-                    CreateZ64(Output, Globals[0], Globals[1]);
+                    CreateZ64(Output, Globals[0], Globals[1], Globals[2]);
                     return;
             }
         }
 
-        private static void CreateZ64(string Output, Globals bootCodeGlob, Globals gameCodeGlob)
+        private static void CreateZ64(string Output, Globals headerDataGlob, Globals bootCodeGlob, Globals gameCodeGlob)
         {
             // TODO: Add a way to make .Z64 files
         }
 
         private static void CreateRAW(string Output, Globals globals)
         {
-            byte[] Data = new byte[globals.GetInstCount() * 4];
-
-            for (int i = 0; i < Data.Length; i += 4)
-            {
-                for (int j = 0; j < 4; ++j)
-                {
-                    byte[] Bytes = BitConverter.GetBytes(globals.GetAllInsts()[i / 4]);
-                    Array.Reverse(Bytes);
-                    Data[i + j] = Bytes[j];
-                }
-            }
-
-            File.WriteAllBytes(Output, Data);
+            File.WriteAllBytes(Output, globals.GetAllData().ToArray());
         }
     }
 }
